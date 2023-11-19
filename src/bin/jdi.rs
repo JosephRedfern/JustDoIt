@@ -1,8 +1,10 @@
 use justdoit::{complete_task, create_task, models::*};
 
-use diesel::prelude::*;
-
 use clap::{Parser, Subcommand};
+use diesel::prelude::*;
+use std::sync::Once;
+
+static INIT: Once = Once::new();
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -14,11 +16,30 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Done { id: i32 },
-    Add { task: String },
+    Done {
+        id: i32,
+    },
+    Add {
+        task: String,
+    },
+    #[command(subcommand)]
+    List(ListCommands),
+}
+
+#[derive(Subcommand)]
+enum ListCommands {
+    All,
+    Complete,
+    Incomplete,
+}
+
+fn setup() {
+    INIT.call_once(|| env_logger::init());
 }
 
 fn main() {
+    setup();
+
     let connection = &mut justdoit::establish_connection();
 
     let cli = Cli::parse();
@@ -26,26 +47,53 @@ fn main() {
     match &cli.command {
         Some(Commands::Add { task }) => {
             create_task(connection, task);
-            show_outstanding(connection);
+            list_tasks(connection, false, true);
         }
         Some(Commands::Done { id }) => {
             complete_task(connection, *id);
-            show_outstanding(connection);
+            list_tasks(connection, false, true);
         }
+        Some(Commands::List(args)) => match args {
+            ListCommands::All => {
+                list_tasks(connection, true, true);
+            }
+            ListCommands::Complete => {
+                list_tasks(connection, true, false);
+            }
+            ListCommands::Incomplete => {
+                list_tasks(connection, false, true);
+            }
+        },
         None => {
-            show_outstanding(connection);
+            list_tasks(connection, false, true);
         }
     }
 }
 
-fn show_outstanding(connection: &mut SqliteConnection) {
-    use justdoit::schema::tasks::dsl::*;
+fn list_tasks(connection: &mut SqliteConnection, include_complete: bool, include_incomplete: bool) {
+    use justdoit::schema::tasks;
 
-    let results = tasks
-        .filter(completed.is_null())
+    let mut query = tasks::table.into_boxed();
+
+    if include_complete && include_incomplete {
+        // nop
+    } else {
+        if include_complete {
+            query = query.filter(tasks::completed.is_not_null());
+        }
+
+        if include_incomplete {
+            query = query.filter(tasks::completed.is_null());
+        }
+    }
+
+    let results: Vec<Task> = query
+        .order_by(tasks::created.asc())
         .select(Task::as_select())
         .load(connection)
         .expect("Error loading posts");
+
+    log::info!("Found {}", results.len());
 
     println!("Displaying {} task(s)", results.len());
     println!("---------------------\n");
