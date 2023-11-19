@@ -1,4 +1,4 @@
-use justdoit::{create_task, models::*};
+use justdoit::{complete_task, create_task, models::*};
 
 use diesel::prelude::*;
 
@@ -14,12 +14,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Done {
-        id: i32,
-    },
-    Add {
-        task: String,
-    },
+    Done { id: i32 },
+    Add { task: String },
 }
 
 fn main() {
@@ -33,7 +29,8 @@ fn main() {
             show_outstanding(connection);
         }
         Some(Commands::Done { id }) => {
-            println!("'done' was used");
+            complete_task(connection, *id);
+            show_outstanding(connection);
         }
         None => {
             show_outstanding(connection);
@@ -53,11 +50,11 @@ fn show_outstanding(connection: &mut SqliteConnection) {
     println!("Displaying {} task(s)", results.len());
     println!("---------------------\n");
 
-    for (n, t) in results.iter().enumerate() {
+    for t in results.iter() {
         println!(
             "{}. {} ({})",
-            n,
-            t.task.as_ref().unwrap(),
+            t.id.unwrap(),
+            t.body.as_ref().unwrap(),
             t.created.as_ref().unwrap()
         );
     }

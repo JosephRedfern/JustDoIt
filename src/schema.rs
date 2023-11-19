@@ -3,7 +3,7 @@
 diesel::table! {
     tasks (id) {
         id -> Nullable<Integer>,
-        task -> Nullable<Text>,
+        body -> Nullable<Text>,
         created -> Nullable<Timestamp>,
         completed -> Nullable<Timestamp>,
     }

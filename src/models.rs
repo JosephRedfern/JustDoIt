@@ -7,7 +7,7 @@ use chrono::NaiveDateTime;
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Task {
     pub id: Option<i32>,
-    pub task: Option<String>,
+    pub body: Option<String>,
     pub created: Option<NaiveDateTime>,
     pub completed: Option<NaiveDateTime>,
 }
@@ -15,5 +15,5 @@ pub struct Task {
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::tasks)]
 pub struct NewTask<'a> {
-    pub task: &'a str,
+    pub body: &'a str,
 }
