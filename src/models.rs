@@ -1,10 +1,13 @@
 use diesel::prelude::*;
 
+use rocket::serde::{Deserialize, Serialize};
+
 use chrono::NaiveDateTime;
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = crate::schema::tasks)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[derive(Serialize, Deserialize)]
 pub struct Task {
     pub id: Option<i32>,
     pub body: Option<String>,

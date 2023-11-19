@@ -1,6 +1,10 @@
+pub mod http;
 pub mod models;
 pub mod schema;
 pub mod tasks;
+
+#[macro_use]
+extern crate rocket;
 
 use diesel::prelude::*;
 use diesel::sqlite::SqliteConnection;
